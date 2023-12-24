@@ -78,6 +78,7 @@ For .mocharc.json
     // ... other options ...
   }
 }
+```
 
 Alternatively, you can pass the reporter options via the command line when running your Mocha tests. Use the --reporter-options flag followed by the options in a key=value format, separated by commas:
 
