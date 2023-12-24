@@ -75,7 +75,6 @@ For .mocharc.json
   "reporter": "mocha-ctrf-json-reporter",
   "reporterOptions": {
     "outputFile": "custom-name.json",
-    // ... other options ...
   }
 }
 ```
