@@ -64,7 +64,8 @@ The reporter supports several configuration options, update your .mocharc.js
     osVersion: '5.4.0',             // Optional: Specify the OS version.
     buildName: 'MyApp Build',       // Optional: Specify the build name.
     buildNumber: '100',             // Optional: Specify the build number.
-}},
+  }
+},
 
 ```
 
