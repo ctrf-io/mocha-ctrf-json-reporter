@@ -70,7 +70,7 @@ The reporter supports several configuration options, update your .mocharc.js
 
 For .mocharc.json
 
-````json
+```json
 {
   "reporter": "mocha-ctrf-json-reporter",
   "reporterOptions": {
@@ -84,7 +84,7 @@ Alternatively, you can pass the reporter options via the command line when runni
 
 ```bash
 npx mocha --reporter mocha-ctrf-json-reporter --reporter-options "outputFile=custom-name.json,outputDir=custom-directory,appName=MyApp,appVersion=1.0.0"
-````
+```
 
 ## Test Object Properties
 
