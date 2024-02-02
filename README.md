@@ -1,8 +1,8 @@
-# Mocha JSON Reporter - CTRF
+# Mocha JSON Reporter
 
-A Mocha test reporter to generate JSON test reports that are [CTRF](https://ctrf.io) compliant.
+A Mocha JSON test reporter to create test reports that follow the CTRF standard.
 
-[Common Test Report Format](https://ctrf.io) helps you generate consistent JSON reports that are agnostic of specific programming languages or test frameworks.
+[Common Test Report Format](https://ctrf.io) ensures the generation of uniform JSON test reports, independent of programming languages or test framework in use.
 
 ## Features
 
@@ -11,9 +11,51 @@ A Mocha test reporter to generate JSON test reports that are [CTRF](https://ctrf
 
 ## What is CTRF?
 
-A JSON test report schema that is the same structure, no matter which testing tool is used. It's created to provide consistent test reporting agnostic of specific programming languages or testing frameworks. Where many testing frameworks exist, each generating JSON reports in their own way, CTRF provides a standardised schema helping you generate the same report anywhere.
+CTRF is a universal JSON test report schema that addresses the lack of a standardized format for JSON test reports.
+
+**Consistency Across Tools:** Different testing tools and frameworks often produce reports in varied formats. CTRF ensures a uniform structure, making it easier to understand and compare reports, regardless of the testing tool used.
+
+**Language and Framework Agnostic:** It provides a universal reporting schema that works seamlessly with any programming language and testing framework.
+
+**Facilitates Better Analysis:** With a standardized format, programatically analyzing test outcomes across multiple platforms becomes more straightforward.
+
+```json
+{
+  "results": {
+    "tool": {
+      "name": "mocha"
+    },
+    "summary": {
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "pending": 0,
+      "skipped": 0,
+      "other": 0,
+      "start": 1706828654274,
+      "stop": 1706828655782
+    },
+    "tests": [
+      {
+        "name": "ctrf should generate the same report with any tool",
+        "status": "passed",
+        "duration": 100
+      }
+    ],
+    "environment": {
+      "appName": "MyApp",
+      "buildName": "MyBuild",
+      "buildNumber": "1"
+    }
+  }
+}
+```
 
 ## Installation
+
+```bash
+npm install --save-dev jest-ctrf-json-reporter
+```
 
 You can configure Mocha to use mocha-ctrf-json-reporter in several ways: through .mocharc.js, .mocharc.json, or via the command line. Below are the instructions for each method:
 
