@@ -54,7 +54,7 @@ CTRF is a universal JSON test report schema that addresses the lack of a standar
 ## Installation
 
 ```bash
-npm install --save-dev jest-ctrf-json-reporter
+npm install --save-dev mocha-ctrf-json-reporter
 ```
 
 You can configure Mocha to use mocha-ctrf-json-reporter in several ways: through .mocharc.js, .mocharc.json, or via the command line. Below are the instructions for each method:
