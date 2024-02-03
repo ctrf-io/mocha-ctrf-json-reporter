@@ -1,5 +1,9 @@
 import { type Runner, reporters } from 'mocha'
-import { type CtrfEnvironment, type CtrfReport } from '../types/ctrf'
+import {
+  type CtrfTest,
+  type CtrfEnvironment,
+  type CtrfReport,
+} from '../types/ctrf'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 
@@ -106,16 +110,23 @@ class GenerateCtrfReport extends reporters.Base {
   }
 
   private updateCtrfTestResultsFromTest(
-    test: Mocha.Test,
+    testCase: Mocha.Test,
     ctrfReport: CtrfReport
   ): void {
-    const status = test.state ?? 'other'
-
-    ctrfReport.results.tests.push({
-      name: test.fullTitle(),
+    const status = testCase.state ?? 'other'
+    const test: CtrfTest = {
+      name: testCase.fullTitle(),
       status,
-      duration: test.duration ?? 0,
-    })
+      duration: testCase.duration ?? 0,
+    }
+
+    if (testCase.state === 'failed' && testCase.err != null) {
+      const failureDetails = this.extractFailureDetails(testCase)
+      test.message = failureDetails.message
+      test.trace = failureDetails.trace
+    }
+
+    ctrfReport.results.tests.push(test)
   }
 
   private getReporterOptions(options: Options): ReporterOptions {
@@ -202,6 +213,20 @@ class GenerateCtrfReport extends reporters.Base {
 
   private hasEnvironmentDetails(environment: CtrfEnvironment): boolean {
     return Object.keys(environment).length > 0
+  }
+
+  extractFailureDetails(testResult: Mocha.Test): Partial<CtrfTest> {
+    if (testResult.state === 'failed' && testResult.err !== undefined) {
+      const failureDetails: Partial<CtrfTest> = {}
+      if (testResult.err.message !== undefined) {
+        failureDetails.message = `${testResult.err.name} ${testResult.err.message}`
+      }
+      if (testResult.err.stack !== undefined) {
+        failureDetails.trace = testResult.err.stack
+      }
+      return failureDetails
+    }
+    return {}
   }
 
   private writeReportToFile(data: CtrfReport): void {
