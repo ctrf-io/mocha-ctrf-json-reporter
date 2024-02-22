@@ -1,4 +1,6 @@
-# Mocha JSON Reporter
+# Mocha JSON test results report
+
+> Save Mocha test results as a JSON file
 
 A Mocha JSON test reporter to create test reports that follow the CTRF standard.
 
