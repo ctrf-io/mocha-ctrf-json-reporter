@@ -114,10 +114,21 @@ class GenerateCtrfReport extends reporters.Base {
     ctrfReport: CtrfReport
   ): void {
     const status = testCase.state ?? 'other'
+    const endTime = Date.now()
+    const duration = testCase.duration ?? 0
+    const startTime = endTime - duration
+    const currentRetry = (testCase as any).currentRetry()
+
     const test: CtrfTest = {
       name: testCase.fullTitle(),
       status,
       duration: testCase.duration ?? 0,
+      retries: currentRetry,
+      flaky: testCase.state === 'passed' && currentRetry > 0,
+      filePath: testCase.file,
+      rawStatus: testCase.state,
+      start: startTime,
+      stop: Date.now(),
     }
 
     if (testCase.state === 'failed' && testCase.err != null) {
@@ -247,4 +258,5 @@ class GenerateCtrfReport extends reporters.Base {
     }
   }
 }
+
 export = GenerateCtrfReport
