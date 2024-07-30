@@ -32,13 +32,13 @@ export interface CtrfTest {
   suite?: string
   message?: string
   trace?: string
+  line?: number
   rawStatus?: string
   tags?: string[]
   type?: string
   filePath?: string
   retries?: number
   flaky?: boolean
-  attempts?: CtrfTest[]
   browser?: string
   device?: string
   screenshot?: string
@@ -55,6 +55,11 @@ export interface CtrfEnvironment {
   osVersion?: string
   buildName?: string
   buildNumber?: string
+  buildUrl?: string
+  repositoryName?: string
+  repositoryUrl?: string
+  branchName?: string
+  testEnvironment?: string
   extra?: Record<string, any>
 }
 
