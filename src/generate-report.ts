@@ -97,7 +97,9 @@ class GenerateCtrfReport extends reporters.Base {
 
     runner
       .on('start', this.handleStart.bind(this))
-      .on('test end', this.handleTestEnd.bind(this))
+      .on('pass', this.handleTestEnd.bind(this))
+      .on('pending', this.handleTestEnd.bind(this))
+      .on('fail', this.handleTestEnd.bind(this))
       .on('end', this.handleEnd.bind(this))
   }
 
@@ -109,7 +111,10 @@ class GenerateCtrfReport extends reporters.Base {
     }
   }
 
-  handleTestEnd(test: Mocha.Test): void {
+  handleTestEnd(test: Mocha.Test, err?: Error): void {
+    if (err != null) {
+      test.err = err
+    }
     this.updateCtrfTestResultsFromTest(test, this.ctrfReport)
     this.updateCtrfTotalsFromTest(test, this.ctrfReport)
   }
