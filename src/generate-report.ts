@@ -273,9 +273,9 @@ class GenerateCtrfReport extends reporters.Base {
   }
 
   private writeReportToFile(data: CtrfReport): void {
-    var filename = this.reporterOptions.outputFile ?? this.defaultOutputFile
-    if (filename.indexOf('[hash]') !== -1) {
-      filename = filename.replace('[hash]', md5(JSON.stringify(data)));
+    let filename = this.reporterOptions.outputFile ?? this.defaultOutputFile
+    if (filename.includes('[hash]')) {
+      filename = filename.replace('[hash]', md5(JSON.stringify(data)))
     }
 
     const filePath = join(
