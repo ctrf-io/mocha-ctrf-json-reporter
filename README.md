@@ -149,7 +149,7 @@ Alternatively, you can pass the reporter options via the command line when runni
 npx mocha --reporter mocha-ctrf-json-reporter --reporter-options "outputFile=custom-name.json,outputDir=custom-directory,appName=MyApp,appVersion=1.0.0"
 ```
 ### Results Report
-Results XML filename can contain `[hash]`, e.g. `./path_to_your/test-results.[hash].xml`. `[hash]` is replaced by MD5 hash of test results XML. This enables support of parallel execution of multiple `mocha-ctrf-json-reporter`'s writing test results in separate files.
+Results JSON filename can contain `[hash]`, e.g. `./path_to_your/test-results.[hash].json`. `[hash]` is replaced by MD5 hash of test results JSON. This enables support of parallel execution of multiple `mocha-ctrf-json-reporter`'s writing test results in separate files.
 
 ## Test Object Properties
 
