@@ -6,6 +6,7 @@ import {
 } from '../types/ctrf'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
+import md5 from 'md5'
 
 interface Options {
   reporter: string
@@ -272,10 +273,16 @@ class GenerateCtrfReport extends reporters.Base {
   }
 
   private writeReportToFile(data: CtrfReport): void {
+    var filename = this.reporterOptions.outputFile ?? this.defaultOutputFile
+    if (filename.indexOf('[hash]') !== -1) {
+      filename = filename.replace('[hash]', md5(data));
+    }
+
     const filePath = join(
       this.reporterOptions.outputDir ?? this.defaultOutputDir,
-      this.reporterOptions.outputFile ?? this.defaultOutputFile
+      filename
     )
+
     const str = JSON.stringify(data, null, 2)
     try {
       writeFileSync(filePath, str + '\n')
