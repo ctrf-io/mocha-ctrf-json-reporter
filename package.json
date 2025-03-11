@@ -20,6 +20,7 @@
   "author": "Matthew Thomas",
   "license": "MIT",
   "devDependencies": {
+    "@types/md5": "^2.3.5",
     "@types/mocha": "^10.0.3",
     "@types/node": "^20.8.7",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
@@ -31,8 +32,11 @@
     "eslint-plugin-n": "^16.3.1",
     "eslint-plugin-prettier": "^5.0.1",
     "eslint-plugin-promise": "^6.1.1",
-    "prettier": "^3.1.0",
     "mocha": "^10.2.0",
+    "prettier": "^3.1.0",
     "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "md5": "^2.3.0"
   }
 }
