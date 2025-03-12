@@ -193,7 +193,11 @@ class GenerateCtrfReport extends reporters.Base {
   }
 
   private updateCtrfTotalsFromTest(
-    test: Mocha.Test,
+    test:
+      | Mocha.Test
+      | {
+          state?: 'failed' | 'passed' | 'pending' | 'skipped' | undefined
+        },
     ctrfReport: CtrfReport
   ): void {
     ctrfReport.results.summary.tests++
@@ -207,6 +211,9 @@ class GenerateCtrfReport extends reporters.Base {
         break
       case 'pending':
         ctrfReport.results.summary.pending++
+        break
+      case 'skipped':
+        ctrfReport.results.summary.skipped++
         break
       default:
         ctrfReport.results.summary.other++
