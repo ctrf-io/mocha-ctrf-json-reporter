@@ -8,6 +8,11 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import crypto from 'crypto'
 import md5 from 'md5'
+import {
+  setGlobalTestRuntime,
+  createTestRuntime,
+  type RuntimeMessage,
+} from './runtime'
 
 interface Options {
   reporter: string
@@ -46,6 +51,10 @@ class GenerateCtrfReport extends reporters.Base {
   private readonly projectRoot = process.cwd()
   private readonly mocharcJsPath = join(this.projectRoot, '.mocharc.js')
   private readonly mocharcJsonPath = join(this.projectRoot, '.mocharc.json')
+
+  // Track current test for runtime API
+  private currentTest: string | null = null
+  private pendingMessages: Map<string, RuntimeMessage[]> = new Map()
 
   constructor(runner: Runner, options: Options) {
     super(runner)
@@ -102,12 +111,37 @@ class GenerateCtrfReport extends reporters.Base {
       })
     }
 
+    // Set up global runtime for extra() API
+    const runtime = createTestRuntime((message) =>
+      this.applyRuntimeMessage(message)
+    )
+    setGlobalTestRuntime(runtime)
+
     runner
       .on('start', this.handleStart.bind(this))
+      .on('test', this.handleTestBegin.bind(this))
       .on('pass', this.handleTestEnd.bind(this))
       .on('pending', this.handleTestEnd.bind(this))
       .on('fail', this.handleTestEnd.bind(this))
       .on('end', this.handleEnd.bind(this))
+  }
+
+  /**
+   * Handle incoming runtime messages (extra() calls)
+   * Messages are queued for current test
+   */
+  private applyRuntimeMessage(message: RuntimeMessage): void {
+    if (!this.currentTest) {
+      if (process.env.DEBUG) {
+        console.warn('[CTRF] Runtime message received but no test is active')
+      }
+      return
+    }
+
+    if (!this.pendingMessages.has(this.currentTest)) {
+      this.pendingMessages.set(this.currentTest, [])
+    }
+    this.pendingMessages.get(this.currentTest)!.push(message)
   }
 
   handleStart(): void {
@@ -118,12 +152,22 @@ class GenerateCtrfReport extends reporters.Base {
     }
   }
 
+  /**
+   * Track test begin for runtime context
+   */
+  handleTestBegin(test: Mocha.Test): void {
+    this.currentTest = test.fullTitle()
+  }
+
   handleTestEnd(test: Mocha.Test, err?: Error): void {
     if (err != null) {
       test.err = err
     }
     this.updateCtrfTestResultsFromTest(test, this.ctrfReport)
     this.updateCtrfTotalsFromTest(test, this.ctrfReport)
+
+    // Clear current test after processing
+    this.currentTest = null
   }
 
   handleEnd(): void {
@@ -159,7 +203,63 @@ class GenerateCtrfReport extends reporters.Base {
       test.trace = failureDetails.trace
     }
 
+    // Apply any pending runtime messages (extra data) to this test
+    const testId = testCase.fullTitle()
+    const messages = this.pendingMessages.get(testId)
+    if (messages && messages.length > 0) {
+      for (const message of messages) {
+        if (message.type === 'extra') {
+          test.extra = this.deepMerge(
+            (test.extra ?? {}) as Record<string, unknown>,
+            message.data
+          )
+        }
+      }
+      this.pendingMessages.delete(testId)
+    }
+
     ctrfReport.results.tests.push(test)
+  }
+
+  /**
+   * Deep merge two objects following CTRF merge rules:
+   * - Arrays: concatenated
+   * - Objects: recursively merged
+   * - Primitives: overwritten
+   */
+  private deepMerge(
+    target: Record<string, unknown>,
+    source: Record<string, unknown>
+  ): Record<string, unknown> {
+    const result = { ...target }
+
+    for (const [key, sourceValue] of Object.entries(source)) {
+      const targetValue = result[key]
+
+      if (Array.isArray(sourceValue)) {
+        result[key] = Array.isArray(targetValue)
+          ? [...targetValue, ...sourceValue]
+          : [...sourceValue]
+      } else if (
+        sourceValue !== null &&
+        typeof sourceValue === 'object' &&
+        !Array.isArray(sourceValue)
+      ) {
+        result[key] =
+          targetValue !== null &&
+          typeof targetValue === 'object' &&
+          !Array.isArray(targetValue)
+            ? this.deepMerge(
+                targetValue as Record<string, unknown>,
+                sourceValue as Record<string, unknown>
+              )
+            : { ...sourceValue }
+      } else {
+        result[key] = sourceValue
+      }
+    }
+
+    return result
   }
 
   private getReporterOptions(options: Options): ReporterOptions {
