@@ -6,6 +6,7 @@ import {
 } from '../types/ctrf'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
+import crypto from 'crypto'
 import md5 from 'md5'
 
 interface Options {
@@ -67,6 +68,11 @@ class GenerateCtrfReport extends reporters.Base {
     }
 
     this.ctrfReport = {
+      reportFormat: 'CTRF',
+      specVersion: '0.0.0',
+      reportId: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      generatedBy: 'mocha-ctrf-json-reporter',
       results: {
         tool: {
           name: 'mocha',
