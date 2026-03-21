@@ -1,9 +1,10 @@
 import { type Runner, reporters } from 'mocha'
 import {
-  type CtrfTest,
-  type CtrfEnvironment,
-  type CtrfReport,
-} from '../types/ctrf'
+  type CTRFReport,
+  type Test as CtrfTestBase,
+  type Environment,
+  type Results,
+} from 'ctrf'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import crypto from 'crypto'
@@ -13,6 +14,19 @@ import {
   createTestRuntime,
   type RuntimeMessage,
 } from './runtime'
+
+// Local overrides to keep backward-compatible string suite (canonical is string[])
+// TODO(v1): align suite to string[] and remove this override
+type MochaTest = Omit<CtrfTestBase, 'suite'> & { suite?: string | string[] }
+// TODO(v1): align buildNumber to number and remove this override
+type MochaEnvironment = Omit<Environment, 'buildNumber'> & {
+  buildNumber?: string | number
+}
+type MochaResults = Omit<Results, 'tests' | 'environment'> & {
+  tests: MochaTest[]
+  environment?: MochaEnvironment
+}
+type MochaCTRFReport = Omit<CTRFReport, 'results'> & { results: MochaResults }
 
 interface Options {
   reporter: string
@@ -41,8 +55,8 @@ interface ReporterOptions {
 }
 
 class GenerateCtrfReport extends reporters.Base {
-  private readonly ctrfReport: CtrfReport
-  readonly ctrfEnvironment: CtrfEnvironment
+  private readonly ctrfReport: MochaCTRFReport
+  readonly ctrfEnvironment: MochaEnvironment
   private readonly reporterOptions: ReporterOptions
   readonly reporterName = 'mocha-ctrf-json-reporter'
   readonly defaultOutputFile = 'ctrf-report.json'
@@ -177,7 +191,7 @@ class GenerateCtrfReport extends reporters.Base {
 
   private updateCtrfTestResultsFromTest(
     testCase: Mocha.Test,
-    ctrfReport: CtrfReport
+    ctrfReport: MochaCTRFReport
   ): void {
     const status = testCase.state ?? 'other'
     const endTime = Date.now()
@@ -185,7 +199,7 @@ class GenerateCtrfReport extends reporters.Base {
     const startTime = endTime - duration
     const currentRetry = (testCase as any).currentRetry()
 
-    const test: CtrfTest = {
+    const test: MochaTest = {
       name: testCase.fullTitle(),
       status,
       duration: testCase.duration ?? 0,
@@ -304,7 +318,7 @@ class GenerateCtrfReport extends reporters.Base {
       | {
           state?: 'failed' | 'passed' | 'pending' | 'skipped' | undefined
         },
-    ctrfReport: CtrfReport
+    ctrfReport: MochaCTRFReport
   ): void {
     ctrfReport.results.summary.tests++
 
@@ -367,13 +381,13 @@ class GenerateCtrfReport extends reporters.Base {
     }
   }
 
-  private hasEnvironmentDetails(environment: CtrfEnvironment): boolean {
+  private hasEnvironmentDetails(environment: MochaEnvironment): boolean {
     return Object.keys(environment).length > 0
   }
 
-  extractFailureDetails(testResult: Mocha.Test): Partial<CtrfTest> {
+  extractFailureDetails(testResult: Mocha.Test): Partial<MochaTest> {
     if (testResult.state === 'failed' && testResult.err !== undefined) {
-      const failureDetails: Partial<CtrfTest> = {}
+      const failureDetails: Partial<MochaTest> = {}
       if (testResult.err.message !== undefined) {
         failureDetails.message = `${testResult.err.name} ${testResult.err.message}`
       }
@@ -385,7 +399,7 @@ class GenerateCtrfReport extends reporters.Base {
     return {}
   }
 
-  private writeReportToFile(data: CtrfReport): void {
+  private writeReportToFile(data: MochaCTRFReport): void {
     let filename = this.reporterOptions.outputFile ?? this.defaultOutputFile
     if (filename.includes('[hash]')) {
       filename = filename.replace('[hash]', md5(JSON.stringify(data)))
