@@ -60,7 +60,7 @@
     "eslint-plugin-promise": "^7.2.1",
     "mocha": "^11.7.5",
     "prettier": "^3.8.1",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "typescript-eslint": "^8.55.0"
   },
   "dependencies": {
