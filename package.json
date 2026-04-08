@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "mocha ./tests",
+    "test": "mocha ./tests --reporter dist/index.js",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
     "format": "prettier --write .",
@@ -65,6 +65,7 @@
   },
   "dependencies": {
     "ctrf": "^0.2.0",
+    "stacktrace-parser": "^0.1.11",
     "md5": "^2.3.0"
   }
 }

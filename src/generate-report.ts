@@ -14,6 +14,7 @@ import {
   createTestRuntime,
   type RuntimeMessage,
 } from './runtime'
+import { parse as parseStack } from 'stacktrace-parser'
 
 // Local overrides to keep backward-compatible string suite (canonical is string[])
 // TODO(v1): align suite to string[] and remove this override
@@ -213,8 +214,7 @@ class GenerateCtrfReport extends reporters.Base {
 
     if (testCase.state === 'failed' && testCase.err != null) {
       const failureDetails = this.extractFailureDetails(testCase)
-      test.message = failureDetails.message
-      test.trace = failureDetails.trace
+      Object.assign(test, failureDetails)
     }
 
     // Apply any pending runtime messages (extra data) to this test
@@ -392,6 +392,11 @@ class GenerateCtrfReport extends reporters.Base {
         failureDetails.message = `${testResult.err.name} ${testResult.err.message}`
       }
       if (testResult.err.stack !== undefined) {
+        const frames = parseStack(testResult.err.stack)
+        const frame = frames.find(
+          (f) => f.file && testResult.file?.endsWith(f.file)
+        )
+        failureDetails.line = frame?.lineNumber ?? undefined
         failureDetails.trace = testResult.err.stack
       }
       return failureDetails
