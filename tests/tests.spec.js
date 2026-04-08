@@ -7,6 +7,10 @@ describe('Tests', function () {
 
   it.skip('should be skipped', function () {})
 
+  it('should fail', () => {
+    throw new Error('oh no!')
+  })
+
   context('Tests context', () => {
     beforeEach(function () {
       this.testProperty = 123456
