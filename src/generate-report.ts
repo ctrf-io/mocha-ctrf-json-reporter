@@ -1,23 +1,22 @@
-import { type Runner, reporters } from 'mocha'
+import assert from 'assert'
+import crypto from 'crypto'
 import {
   type CTRFReport,
   type Test as CtrfTestBase,
   type Environment,
   type Results,
 } from 'ctrf'
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
-import { join } from 'path'
-import crypto from 'crypto'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import md5 from 'md5'
+import { reporters, type Runner } from 'mocha'
+import { join } from 'path'
 import {
-  setGlobalTestRuntime,
   createTestRuntime,
+  setGlobalTestRuntime,
   type RuntimeMessage,
 } from './runtime'
 
-// Local overrides to keep backward-compatible string suite (canonical is string[])
-// TODO(v1): align suite to string[] and remove this override
-type MochaTest = Omit<CtrfTestBase, 'suite'> & { suite?: string | string[] }
+type MochaTest = CtrfTestBase
 // TODO(v1): align buildNumber to number and remove this override
 type MochaEnvironment = Omit<Environment, 'buildNumber'> & {
   buildNumber?: string | number
@@ -68,6 +67,7 @@ class GenerateCtrfReport extends reporters.Base {
 
   // Track current test for runtime API
   private currentTest: string | null = null
+  private currentSuiteStack: string[] = []
   private pendingMessages: Map<string, RuntimeMessage[]> = new Map()
 
   constructor(runner: Runner, options: Options) {
@@ -138,6 +138,8 @@ class GenerateCtrfReport extends reporters.Base {
       .on('pending', this.handleTestEnd.bind(this))
       .on('fail', this.handleTestEnd.bind(this))
       .on('end', this.handleEnd.bind(this))
+      .on('suite', this.handleSuiteBegin.bind(this))
+      .on('suite end', this.handleSuiteEnd.bind(this))
   }
 
   /**
@@ -189,6 +191,20 @@ class GenerateCtrfReport extends reporters.Base {
     this.writeReportToFile(this.ctrfReport)
   }
 
+  handleSuiteBegin(suite: Mocha.Suite): void {
+    if (suite.root) return
+    this.currentSuiteStack.push(suite.title)
+  }
+
+  handleSuiteEnd(suite: Mocha.Suite): void {
+    if (suite.root) return
+    const currentSuite = this.currentSuiteStack.pop()
+    assert(
+      currentSuite === suite.title,
+      `Got a suite end event for an unexpected suite: ${suite.title}, ${currentSuite})`
+    )
+  }
+
   private updateCtrfTestResultsFromTest(
     testCase: Mocha.Test,
     ctrfReport: MochaCTRFReport
@@ -209,6 +225,8 @@ class GenerateCtrfReport extends reporters.Base {
       rawStatus: testCase.state,
       start: startTime,
       stop: Date.now(),
+      // copy the suite stack so future mutations don't change the report
+      suite: [...this.currentSuiteStack],
     }
 
     if (testCase.state === 'failed' && testCase.err != null) {
