@@ -58,5 +58,8 @@
 	"dependencies": {
 		"ctrf": "0.2.1",
 		"md5": "2.3.0"
+	},
+	"overrides": {
+		"serialize-javascript": "7.0.5"
 	}
 }
