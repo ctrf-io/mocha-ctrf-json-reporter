@@ -1,4 +1,4 @@
-import GenerateCtrfReport = require("./generate-report");
-import { ctrf, extra } from "./runtime";
+import GenerateCtrfReport from "./generate-report";
 
-export = Object.assign(GenerateCtrfReport, { ctrf, extra });
+export { ctrf, extra } from "./runtime";
+export default GenerateCtrfReport;

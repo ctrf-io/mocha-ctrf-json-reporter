@@ -6,6 +6,7 @@ import type {
 	Results,
 } from "ctrf";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import crypto from "node:crypto";
 import md5 from "md5";
@@ -14,6 +15,8 @@ import {
 	createTestRuntime,
 	type RuntimeMessage,
 } from "./runtime";
+
+const require = createRequire(import.meta.url);
 
 // Local overrides to keep backward-compatible string suite (canonical is string[])
 // TODO(v1): align suite to string[] and remove this override
@@ -54,7 +57,7 @@ interface ReporterOptions {
 	testEnvironment?: string | undefined;
 }
 
-class GenerateCtrfReport extends reporters.Base {
+export default class GenerateCtrfReport extends reporters.Base {
 	private readonly ctrfReport: MochaCTRFReport;
 	readonly ctrfEnvironment: MochaEnvironment;
 	private readonly reporterOptions: ReporterOptions;
@@ -424,5 +427,3 @@ class GenerateCtrfReport extends reporters.Base {
 		}
 	}
 }
-
-export = GenerateCtrfReport;
