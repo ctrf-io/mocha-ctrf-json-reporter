@@ -2,6 +2,8 @@
 
 > Save Mocha test results as a JSON file
 
+![CTRF 0.1.0](https://img.shields.io/badge/0.1.0-red?label=ctrf&labelColor=green)
+
 A Mocha JSON test reporter to create test reports that follow the CTRF standard.
 
 [Common Test Report Format](https://ctrf.io) ensures the generation of uniform JSON test reports, independent of programming languages or test framework in use.
@@ -52,7 +54,7 @@ By standardizing test results, reports can be validated, merged, compared, and a
     "environment": {
       "appName": "MyApp",
       "buildName": "MyBuild",
-      "buildNumber": "1"
+      "buildNumber": 1
     }
   }
 }
@@ -112,7 +114,7 @@ The reporter supports several configuration options, update your .mocharc.js
     osRelease: '18.04',             // Optional: Specify the OS release version.
     osVersion: '5.4.0',             // Optional: Specify the OS version.
     buildName: 'MyApp Build',       // Optional: Specify the build name.
-    buildNumber: '100',             // Optional: Specify the build number.
+    buildNumber: 100,               // Optional: Specify the numeric build number.
     buildName: 'MyApp Build',       // Optional: Specify the build name.
     buildUrl: "https://ctrf.io",    // Optional: Specify the build url.
     repositoryName: "ctrf-json",    // Optional: Specify the repository name.
@@ -221,6 +223,7 @@ The test object in the report includes the following [CTRF properties](https://c
 | `rawStatus` | String  | Optional | The original playwright status of the test before mapping to CTRF status.           |
 | `filePath`  | String  | Optional | The file path where the test is located in the project.                             |
 | `retries`   | Number  | Optional | The number of retries attempted for the test.                                       |
+| `retryAttempts` | Array | Optional | Ordered history of attempts completed before the final attempt.                  |
 | `flaky`     | Boolean | Optional | Indicates whether the test result is flaky.                                         |
 
 ## What is CTRF?

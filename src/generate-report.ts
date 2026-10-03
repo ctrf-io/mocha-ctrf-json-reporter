@@ -3,8 +3,10 @@ import type {
 	CTRFReport,
 	Test as CtrfTestBase,
 	Environment,
-	Results,
+	RetryAttempt,
+	TestStatus,
 } from "ctrf";
+import { CURRENT_SPEC_VERSION } from "ctrf";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
@@ -17,19 +19,6 @@ import {
 } from "./runtime";
 
 const require = createRequire(import.meta.url);
-
-// Local overrides to keep backward-compatible string suite (canonical is string[])
-// TODO(v1): align suite to string[] and remove this override
-type MochaTest = Omit<CtrfTestBase, "suite"> & { suite?: string | string[] };
-// TODO(v1): align buildNumber to number and remove this override
-type MochaEnvironment = Omit<Environment, "buildNumber"> & {
-	buildNumber?: string | number;
-};
-type MochaResults = Omit<Results, "tests" | "environment"> & {
-	tests: MochaTest[];
-	environment?: MochaEnvironment;
-};
-type MochaCTRFReport = Omit<CTRFReport, "results"> & { results: MochaResults };
 
 interface Options {
 	reporter: string;
@@ -49,7 +38,7 @@ interface ReporterOptions {
 	osRelease?: string | undefined;
 	osVersion?: string | undefined;
 	buildName?: string | undefined;
-	buildNumber?: string | undefined;
+	buildNumber?: number | undefined;
 	buildUrl?: string | undefined;
 	repositoryName?: string | undefined;
 	repositoryUrl?: string | undefined;
@@ -58,8 +47,8 @@ interface ReporterOptions {
 }
 
 export default class GenerateCtrfReport extends reporters.Base {
-	private readonly ctrfReport: MochaCTRFReport;
-	readonly ctrfEnvironment: MochaEnvironment;
+	private readonly ctrfReport: CTRFReport;
+	readonly ctrfEnvironment: Environment;
 	private readonly reporterOptions: ReporterOptions;
 	readonly reporterName = "mocha-ctrf-json-reporter";
 	readonly defaultOutputFile = "ctrf-report.json";
@@ -72,6 +61,7 @@ export default class GenerateCtrfReport extends reporters.Base {
 	// Track current test for runtime API
 	private currentTest: string | null = null;
 	private pendingMessages: Map<string, RuntimeMessage[]> = new Map();
+	private retryAttemptsByTest: Map<string, RetryAttempt[]> = new Map();
 
 	constructor(runner: Runner, options: Options) {
 		super(runner);
@@ -95,7 +85,7 @@ export default class GenerateCtrfReport extends reporters.Base {
 
 		this.ctrfReport = {
 			reportFormat: "CTRF",
-			specVersion: "0.0.0",
+			specVersion: CURRENT_SPEC_VERSION,
 			reportId: crypto.randomUUID(),
 			timestamp: new Date().toISOString(),
 			generatedBy: "mocha-ctrf-json-reporter",
@@ -137,6 +127,7 @@ export default class GenerateCtrfReport extends reporters.Base {
 		runner
 			.on("start", this.handleStart.bind(this))
 			.on("test", this.handleTestBegin.bind(this))
+			.on("retry", this.handleRetry.bind(this))
 			.on("pass", this.handleTestEnd.bind(this))
 			.on("pending", this.handleTestEnd.bind(this))
 			.on("fail", this.handleTestEnd.bind(this))
@@ -176,6 +167,27 @@ export default class GenerateCtrfReport extends reporters.Base {
 		this.currentTest = test.fullTitle();
 	}
 
+	handleRetry(test: Mocha.Test, err: Error): void {
+		const attempt: RetryAttempt = {
+			attempt: (test as any).currentRetry() + 1,
+			status: "failed",
+		};
+		if (typeof test.duration === "number") {
+			attempt.duration = test.duration;
+		}
+		if (err.message !== undefined) {
+			attempt.message = `${err.name} ${err.message}`;
+		}
+		if (err.stack !== undefined) {
+			attempt.trace = err.stack;
+		}
+
+		const testId = this.getTestId(test);
+		const retryAttempts = this.retryAttemptsByTest.get(testId) ?? [];
+		retryAttempts.push(attempt);
+		this.retryAttemptsByTest.set(testId, retryAttempts);
+	}
+
 	handleTestEnd(test: Mocha.Test, err?: Error): void {
 		if (err != null) {
 			test.err = err;
@@ -194,15 +206,15 @@ export default class GenerateCtrfReport extends reporters.Base {
 
 	private updateCtrfTestResultsFromTest(
 		testCase: Mocha.Test,
-		ctrfReport: MochaCTRFReport,
+		ctrfReport: CTRFReport,
 	): void {
-		const status = testCase.state ?? "other";
+		const status = this.mapStatus(testCase.state);
 		const endTime = Date.now();
 		const duration = testCase.duration ?? 0;
 		const startTime = endTime - duration;
 		const currentRetry = (testCase as any).currentRetry();
 
-		const test: MochaTest = {
+		const test: CtrfTestBase = {
 			name: testCase.fullTitle(),
 			status,
 			duration: testCase.duration ?? 0,
@@ -213,6 +225,9 @@ export default class GenerateCtrfReport extends reporters.Base {
 			start: startTime,
 			stop: Date.now(),
 		};
+		if (currentRetry > 0) {
+			test.retryAttempts = this.buildRetryAttempts(testCase, currentRetry);
+		}
 
 		if (testCase.state === "failed" && testCase.err != null) {
 			const failureDetails = this.extractFailureDetails(testCase);
@@ -236,6 +251,38 @@ export default class GenerateCtrfReport extends reporters.Base {
 		}
 
 		ctrfReport.results.tests.push(test);
+		this.retryAttemptsByTest.delete(this.getTestId(testCase));
+	}
+
+	private mapStatus(status: string | undefined): TestStatus {
+		switch (status) {
+			case "passed":
+			case "failed":
+			case "pending":
+			case "skipped":
+				return status;
+			default:
+				return "other";
+		}
+	}
+
+	private getTestId(test: Mocha.Test): string {
+		return `${test.file ?? ""}:${test.fullTitle()}`;
+	}
+
+	private buildRetryAttempts(
+		test: Mocha.Test,
+		retries: number,
+	): RetryAttempt[] {
+		const recordedAttempts = this.retryAttemptsByTest.get(this.getTestId(test));
+		return Array.from(
+			{ length: retries },
+			(_, index) =>
+				recordedAttempts?.[index] ?? {
+					attempt: index + 1,
+					status: "failed",
+				},
+		);
 	}
 
 	/**
@@ -321,7 +368,7 @@ export default class GenerateCtrfReport extends reporters.Base {
 			| {
 					state?: "failed" | "passed" | "pending" | "skipped" | undefined;
 			  },
-		ctrfReport: MochaCTRFReport,
+		ctrfReport: CTRFReport,
 	): void {
 		ctrfReport.results.summary.tests++;
 
@@ -385,13 +432,13 @@ export default class GenerateCtrfReport extends reporters.Base {
 		}
 	}
 
-	private hasEnvironmentDetails(environment: MochaEnvironment): boolean {
+	private hasEnvironmentDetails(environment: Environment): boolean {
 		return Object.keys(environment).length > 0;
 	}
 
-	extractFailureDetails(testResult: Mocha.Test): Partial<MochaTest> {
+	extractFailureDetails(testResult: Mocha.Test): Partial<CtrfTestBase> {
 		if (testResult.state === "failed" && testResult.err !== undefined) {
-			const failureDetails: Partial<MochaTest> = {};
+			const failureDetails: Partial<CtrfTestBase> = {};
 			if (testResult.err.message !== undefined) {
 				failureDetails.message = `${testResult.err.name} ${testResult.err.message}`;
 			}
@@ -403,7 +450,7 @@ export default class GenerateCtrfReport extends reporters.Base {
 		return {};
 	}
 
-	private writeReportToFile(data: MochaCTRFReport): void {
+	private writeReportToFile(data: CTRFReport): void {
 		let filename = this.reporterOptions.outputFile ?? this.defaultOutputFile;
 		if (filename.includes("[hash]")) {
 			filename = filename.replace("[hash]", md5(JSON.stringify(data)));
