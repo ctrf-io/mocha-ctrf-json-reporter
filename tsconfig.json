@@ -11,8 +11,7 @@
 		"declaration": true,
 		"declarationDir": "./dist",
 		"forceConsistentCasingInFileNames": true,
-		"types": ["mocha", "node"],
-		"ignoreDeprecations": "6.0"
+		"types": ["mocha", "node"]
 	},
 	"include": ["src/**/*"],
 	"exclude": [

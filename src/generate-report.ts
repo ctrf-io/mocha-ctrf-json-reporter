@@ -1,3 +1,4 @@
+import { identityValue, testIdentity, type IdentityOptions } from "./identity";
 import { type Runner, reporters } from "mocha";
 import type {
 	CTRFReport,
@@ -26,7 +27,7 @@ interface Options {
 	"reporter-option": ReporterOptions;
 }
 
-interface ReporterOptions {
+interface ReporterOptions extends IdentityOptions {
 	outputFile?: string;
 	outputDir?: string;
 	minimal?: boolean;
@@ -67,6 +68,9 @@ export default class GenerateCtrfReport extends reporters.Base {
 		super(runner);
 		this.reporterOptions = this.getReporterOptions(options);
 		this.reporterOptions = {
+			runId: this.reporterOptions?.runId,
+			shardId: identityValue(this.reporterOptions?.shardId, "shardId"),
+			testIdResolver: this.reporterOptions?.testIdResolver,
 			outputFile: this.reporterOptions?.outputFile ?? this.defaultOutputFile,
 			outputDir: this.reporterOptions?.outputDir ?? this.defaultOutputDir,
 			appName: this.reporterOptions?.appName ?? undefined,
@@ -85,6 +89,9 @@ export default class GenerateCtrfReport extends reporters.Base {
 
 		this.ctrfReport = {
 			reportFormat: "CTRF",
+			...(this.reporterOptions.runId
+				? { runId: this.reporterOptions.runId }
+				: {}),
 			specVersion: CURRENT_SPEC_VERSION,
 			reportId: crypto.randomUUID(),
 			timestamp: new Date().toISOString(),
@@ -164,12 +171,13 @@ export default class GenerateCtrfReport extends reporters.Base {
 	 * Track test begin for runtime context
 	 */
 	handleTestBegin(test: Mocha.Test): void {
-		this.currentTest = test.fullTitle();
+		this.currentTest = this.getTestId(test);
 	}
 
 	handleRetry(test: Mocha.Test, err: Error): void {
 		const attempt: RetryAttempt = {
 			attempt: (test as any).currentRetry() + 1,
+			attemptId: crypto.randomUUID(),
 			status: "failed",
 		};
 		if (typeof test.duration === "number") {
@@ -215,6 +223,17 @@ export default class GenerateCtrfReport extends reporters.Base {
 		const currentRetry = (testCase as any).currentRetry();
 
 		const test: CtrfTestBase = {
+			testId: testIdentity(
+				"mocha",
+				{
+					name: testCase.title ?? testCase.fullTitle(),
+					suite: testCase.titlePath?.().slice(0, -1) ?? [],
+					filePath: testCase.file,
+				},
+				this.reporterOptions,
+			),
+			executionId: crypto.randomUUID(),
+			attemptId: crypto.randomUUID(),
 			name: testCase.fullTitle(),
 			status,
 			duration: testCase.duration ?? 0,
@@ -236,7 +255,7 @@ export default class GenerateCtrfReport extends reporters.Base {
 		}
 
 		// Apply any pending runtime messages (extra data) to this test
-		const testId = testCase.fullTitle();
+		const testId = this.getTestId(testCase);
 		const messages = this.pendingMessages.get(testId);
 		if (messages && messages.length > 0) {
 			for (const message of messages) {
@@ -267,7 +286,10 @@ export default class GenerateCtrfReport extends reporters.Base {
 	}
 
 	private getTestId(test: Mocha.Test): string {
-		return `${test.file ?? ""}:${test.fullTitle()}`;
+		return JSON.stringify([
+			test.file ?? "",
+			test.titlePath?.() ?? [test.fullTitle()],
+		]);
 	}
 
 	private buildRetryAttempts(
@@ -280,6 +302,7 @@ export default class GenerateCtrfReport extends reporters.Base {
 			(_, index) =>
 				recordedAttempts?.[index] ?? {
 					attempt: index + 1,
+					attemptId: crypto.randomUUID(),
 					status: "failed",
 				},
 		);
@@ -392,6 +415,11 @@ export default class GenerateCtrfReport extends reporters.Base {
 	}
 
 	private setEnvironmentDetails(reporterConfigOptions: ReporterOptions): void {
+		if (reporterConfigOptions.shardId !== undefined)
+			this.ctrfEnvironment.shardId = identityValue(
+				reporterConfigOptions.shardId,
+				"shardId",
+			);
 		if (reporterConfigOptions.appName !== undefined) {
 			this.ctrfEnvironment.appName = reporterConfigOptions.appName;
 		}
