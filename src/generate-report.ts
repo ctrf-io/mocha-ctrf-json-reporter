@@ -1,9 +1,4 @@
-import {
-	identityValue,
-	runIdentity,
-	testIdentity,
-	type IdentityOptions,
-} from "./identity";
+import { identityValue, testIdentity, type IdentityOptions } from "./identity";
 import { type Runner, reporters } from "mocha";
 import type {
 	CTRFReport,
@@ -94,7 +89,9 @@ export default class GenerateCtrfReport extends reporters.Base {
 
 		this.ctrfReport = {
 			reportFormat: "CTRF",
-			runId: runIdentity(this.reporterOptions.runId),
+			...(this.reporterOptions.runId
+				? { runId: this.reporterOptions.runId }
+				: {}),
 			specVersion: CURRENT_SPEC_VERSION,
 			reportId: crypto.randomUUID(),
 			timestamp: new Date().toISOString(),

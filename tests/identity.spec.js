@@ -3,6 +3,17 @@ import { EventEmitter } from "node:events";
 import Reporter from "mocha-ctrf-json-reporter";
 
 describe("identity lifecycle", () => {
+	it("omits run identity unless configured with a value", () => {
+		for (const runId of [undefined, ""]) {
+			const runner = new EventEmitter();
+			runner.stats = {};
+			const reporter = new Reporter(runner, {
+				reporterOptions: { runId },
+				"reporter-option": {},
+			});
+			assert.equal(Object.hasOwn(reporter.ctrfReport, "runId"), false);
+		}
+	});
 	it("keeps stable file-qualified logical identity and distinct retry IDs", () => {
 		const create = () => {
 			const runner = new EventEmitter();
