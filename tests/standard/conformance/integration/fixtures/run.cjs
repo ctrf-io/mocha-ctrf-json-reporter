@@ -1,4 +1,5 @@
-const Mocha = require("mocha");
+const importedMocha = require("mocha");
+const Mocha = importedMocha.default ?? importedMocha;
 const path = require("node:path");
 const options = JSON.parse(process.env.CTRF_FIXTURE_OPTIONS);
 if (process.env.CTRF_FIXTURE_SCENARIO === "nonfinite-build-number")
