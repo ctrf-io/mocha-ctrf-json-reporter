@@ -24,6 +24,11 @@ describe('worker metadata', () => {
     await new Promise(resolve => setTimeout(resolve, 15));
     extra({ owner: 'last', nested: { b: 2 }, list: ['two'] });
   });
+  it('serialization after merging', () => {
+    const cycle = {}; cycle.self = cycle;
+    extra({ owner: 'old', nested: { a: 1, keep: true }, replaced: 1n, cycle });
+    extra({ owner: undefined, nested: { a: undefined }, replaced: 'final', cycle: null, created: new Date('2026-01-01T00:00:00Z') });
+  });
   it('empty', () => { reused.value = 'later test'; });
   it('same title', () => extra({ duplicate: 1 }));
   it('same title', () => extra({ duplicate: 2 }));
@@ -88,7 +93,7 @@ mocha.run(failures => { process.exitCode = failures; });
 					readFileSync(path.join(scratch, "ctrf-report.json")),
 				);
 				validateStrict(report, { specVersion: "0.2.0" });
-				assert.equal(report.results.tests.length, 24);
+				assert.equal(report.results.tests.length, 27);
 				for (const source of files) {
 					const tests = report.results.tests.filter(
 						(t) => path.basename(t.filePath) === source,
@@ -103,6 +108,12 @@ mocha.run(failures => { process.exitCode = failures; });
 								list: ["one", "two"],
 								reserved: { $$value: "literal", __mocha_id__: "user" },
 								reused: { value: "first test" },
+							},
+							{
+								nested: { keep: true },
+								replaced: "final",
+								cycle: null,
+								created: {},
 							},
 							undefined,
 							{ duplicate: 1 },

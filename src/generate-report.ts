@@ -1,3 +1,4 @@
+import { mergeExtra } from "./merge-extra";
 import { identityValue, testIdentity, type IdentityOptions } from "./identity";
 import { type Runner, reporters } from "mocha";
 import type {
@@ -286,7 +287,7 @@ export default class GenerateCtrfReport extends reporters.Base {
 		if (messages && messages.length > 0) {
 			for (const message of messages) {
 				if (message.type === "extra") {
-					test.extra = this.deepMerge(
+					test.extra = mergeExtra(
 						(test.extra ?? {}) as Record<string, unknown>,
 						message.data,
 					);
@@ -332,47 +333,6 @@ export default class GenerateCtrfReport extends reporters.Base {
 					status: "failed",
 				},
 		);
-	}
-
-	/**
-	 * Deep merge two objects following CTRF merge rules:
-	 * - Arrays: concatenated
-	 * - Objects: recursively merged
-	 * - Primitives: overwritten
-	 */
-	private deepMerge(
-		target: Record<string, unknown>,
-		source: Record<string, unknown>,
-	): Record<string, unknown> {
-		const result = { ...target };
-
-		for (const [key, sourceValue] of Object.entries(source)) {
-			const targetValue = result[key];
-
-			if (Array.isArray(sourceValue)) {
-				result[key] = Array.isArray(targetValue)
-					? [...targetValue, ...sourceValue]
-					: [...sourceValue];
-			} else if (
-				sourceValue !== null &&
-				typeof sourceValue === "object" &&
-				!Array.isArray(sourceValue)
-			) {
-				result[key] =
-					targetValue !== null &&
-					typeof targetValue === "object" &&
-					!Array.isArray(targetValue)
-						? this.deepMerge(
-								targetValue as Record<string, unknown>,
-								sourceValue as Record<string, unknown>,
-							)
-						: { ...sourceValue };
-			} else {
-				result[key] = sourceValue;
-			}
-		}
-
-		return result;
 	}
 
 	private getReporterOptions(options: Options): ReporterOptions {

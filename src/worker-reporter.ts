@@ -1,3 +1,4 @@
+import { mergeExtra } from "./merge-extra";
 import { createRequire } from "node:module";
 import type { Runner } from "mocha";
 import {
@@ -62,9 +63,18 @@ export default class WorkerReporter extends BufferedReporter {
 				this.testActive = false;
 				this.retryPending = false;
 				if (runnable?.type === "test") {
+					// Merge before encoding so undefined overwrites survive until serialization.
 					// Snapshot now: another test may mutate objects supplied to extra().
 					const encoded = this.messages.length
-						? JSON.stringify(this.messages)
+						? JSON.stringify([
+								{
+									type: "extra",
+									data: this.messages.reduce(
+										(extra, message) => mergeExtra(extra, message.data),
+										{} as Record<string, unknown>,
+									),
+								},
+							])
 						: undefined;
 					this.messages = [];
 					// Wrap this event's value, without patching Test or its prototype.
