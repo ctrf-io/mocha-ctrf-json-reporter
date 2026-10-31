@@ -24,6 +24,7 @@ export default defineConfig([
 	{
 		entry: {
 			"index.generated": "src/index.ts",
+			"worker-reporter.generated": "src/worker-reporter.ts",
 			runtime: "src/runtime.ts",
 		},
 		format: ["cjs"],

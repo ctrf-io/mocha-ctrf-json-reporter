@@ -13,3 +13,10 @@ module.exports = Object.assign(Reporter, {
 });
 `,
 );
+
+writeFileSync(
+	"dist/worker-reporter.cjs",
+	`"use strict";
+module.exports = require("./worker-reporter.generated.cjs").default;
+`,
+);

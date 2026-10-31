@@ -188,13 +188,13 @@ function workerContext() {
 	}));
 	return { samples: [sample] };
 }
-test("exceptions / exact worker loss matches; partial and full fixes fail", () => {
+test("metadata / worker loss and partial fixes fail without an exception", () => {
 	const entry = property("results.tests[].extra");
-	assert.equal(
-		runConformance(entry, workerContext(), "integration").issue,
-		"parallel-metadata-loss",
-	);
 	const context = workerContext();
+	assert.throws(
+		() => runConformance(entry, context, "integration"),
+		/runtime metadata source mapping/,
+	);
 	context.samples[0].report.results.tests[0].extra = { index: 0 };
 	assert.throws(() => runConformance(entry, context, "integration"));
 	for (const [
@@ -205,10 +205,7 @@ test("exceptions / exact worker loss matches; partial and full fixes fail", () =
 		if (extra !== undefined) test.extra = extra;
 		else delete test.extra;
 	}
-	assert.throws(
-		() => runConformance(entry, context, "integration"),
-		/Unexpected pass/,
-	);
+	assert.equal(runConformance(entry, context, "integration"), undefined);
 });
 test("reporting / removed build-number labels remain ordinary results", () => {
 	const name =
