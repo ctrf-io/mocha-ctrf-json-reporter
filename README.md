@@ -154,6 +154,8 @@ See the [CTRF extra specification](https://www.ctrf.io/docs/specification/extra)
 
 ### Usage
 
+The same API works with Mocha's `--parallel` mode without additional configuration.
+
 Import `ctrf` from the reporter and call `ctrf.extra()` inside any test:
 
 ```javascript

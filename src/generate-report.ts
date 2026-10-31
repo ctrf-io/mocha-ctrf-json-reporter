@@ -18,6 +18,7 @@ import {
 	createTestRuntime,
 	type RuntimeMessage,
 } from "./runtime";
+import { CTRF_MOCHA_MESSAGES_KEY } from "./worker-messages";
 
 const require = createRequire(import.meta.url);
 
@@ -130,6 +131,14 @@ export default class GenerateCtrfReport extends reporters.Base {
 			this.applyRuntimeMessage(message),
 		);
 		setGlobalTestRuntime(runtime);
+		// In parallel mode the test code runs in workers, not in this process.
+		const parallelRunner = runner as Runner & {
+			isParallelMode?: () => boolean;
+			workerReporter: (path: string) => Runner;
+		};
+		if (parallelRunner.isParallelMode?.()) {
+			parallelRunner.workerReporter(require.resolve("./worker-reporter.cjs"));
+		}
 
 		runner
 			.on("start", this.handleStart.bind(this))
@@ -197,6 +206,7 @@ export default class GenerateCtrfReport extends reporters.Base {
 	}
 
 	handleTestEnd(test: Mocha.Test, err?: Error): void {
+		this.receiveWorkerMessages(test);
 		if (err != null) {
 			test.err = err;
 		}
@@ -205,6 +215,22 @@ export default class GenerateCtrfReport extends reporters.Base {
 
 		// Clear current test after processing
 		this.currentTest = null;
+	}
+
+	private receiveWorkerMessages(test: Mocha.Test): void {
+		const workerTest = test as Mocha.Test & {
+			[CTRF_MOCHA_MESSAGES_KEY]?: string;
+		};
+		const encoded = workerTest[CTRF_MOCHA_MESSAGES_KEY];
+		if (encoded !== undefined) {
+			delete workerTest[CTRF_MOCHA_MESSAGES_KEY];
+			const messages = JSON.parse(encoded) as RuntimeMessage[];
+			const testId = this.getTestId(test);
+			this.pendingMessages.set(testId, [
+				...(this.pendingMessages.get(testId) ?? []),
+				...messages,
+			]);
+		}
 	}
 
 	handleEnd(): void {
