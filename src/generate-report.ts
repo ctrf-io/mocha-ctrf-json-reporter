@@ -439,7 +439,13 @@ export default class GenerateCtrfReport extends reporters.Base {
 			this.ctrfEnvironment.buildName = reporterConfigOptions.buildName;
 		}
 		if (reporterConfigOptions.buildNumber !== undefined) {
-			this.ctrfEnvironment.buildNumber = reporterConfigOptions.buildNumber;
+			if (Number.isInteger(reporterConfigOptions.buildNumber)) {
+				this.ctrfEnvironment.buildNumber = reporterConfigOptions.buildNumber;
+			} else {
+				console.warn(
+					"[CTRF] buildNumber must be a finite integer; omitting invalid value.",
+				);
+			}
 		}
 		if (reporterConfigOptions.buildUrl !== undefined) {
 			this.ctrfEnvironment.buildUrl = reporterConfigOptions.buildUrl;

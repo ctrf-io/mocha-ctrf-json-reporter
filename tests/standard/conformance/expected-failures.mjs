@@ -1,15 +1,6 @@
 import { runExpectedFailure } from "./shared/expected-failures.mjs";
 import assert, { AssertionError } from "node:assert/strict";
 import { checkMochaEntry } from "./mocha-checks.mjs";
-const numericIssue = {
-	issue: "invalid-build-number",
-	reason: "Fractional and non-finite build numbers produce invalid output",
-	followUp: "https://github.com/ctrf-io/mocha-ctrf-json-reporter/issues/89",
-	samples: {
-		unit: ["fractional-build-number", "nonfinite-build-number"],
-		integration: ["fractional-build-number", "nonfinite-build-number"],
-	},
-};
 const workerIssue = {
 	issue: "parallel-metadata-loss",
 	reason: "Runtime metadata is lost across worker processes",
@@ -17,8 +8,6 @@ const workerIssue = {
 	samples: { integration: ["parallel"] },
 };
 export const expectedFailures = {
-	"conformance/property/results.environment.buildNumber": numericIssue,
-	"conformance/report/single-json-object": numericIssue,
 	"conformance/property/results.tests[].extra": workerIssue,
 };
 export function expectedFailure(entry, level) {
@@ -81,19 +70,7 @@ export function matchesKnownFailure(entry, sample, issue, error) {
 			return false;
 		}
 	}
-	const value = sample.report.results.environment.buildNumber;
-	if (value !== (sample.name === "fractional-build-number" ? 1.5 : null))
-		return false;
-	const detail =
-		entry.kind === "property"
-			? "results.environment.buildNumber: data must be integer"
-			: "data/results/environment/buildNumber must be integer";
-	return (
-		error.message.split("\n")[0] === `${sample.name}: ${detail}` &&
-		error.actual === false &&
-		error.expected === true &&
-		error.operator === "=="
-	);
+	return false;
 }
 export function runConformance(entry, context, level, check = checkMochaEntry) {
 	return runExpectedFailure(
