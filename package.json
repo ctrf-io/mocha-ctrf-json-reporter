@@ -1,6 +1,6 @@
 {
 	"name": "mocha-ctrf-json-reporter",
-	"version": "0.2.2",
+	"version": "0.3.0",
 	"description": "A Mocha test reporter to create test results reports",
 	"type": "module",
 	"main": "./dist/index.cjs",
@@ -67,7 +67,7 @@
 		"url": "https://github.com/ctrf-io/.github/blob/main/SECURITY.md"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.6.4",
+		"@biomejs/biome": "2.6.8",
 		"@types/md5": "2.3.6",
 		"@types/mocha": "10.0.10",
 		"@types/node": "26.6.6",
@@ -79,11 +79,10 @@
 		"ajv-formats": "3.0.1"
 	},
 	"dependencies": {
-		"ctrf": "0.5.0",
+		"ctrf": "0.6.0",
 		"md5": "2.3.0"
 	},
 	"overrides": {
-		"serialize-javascript": "7.1.4",
-		"esbuild": "0.28.2"
+		"serialize-javascript": "7.1.4"
 	}
 }
