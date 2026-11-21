@@ -92,7 +92,7 @@ mocha.run(failures => { process.exitCode = failures; });
 				const report = JSON.parse(
 					readFileSync(path.join(scratch, "ctrf-report.json")),
 				);
-				validateStrict(report, { specVersion: "0.2.0" });
+				validateStrict(report, { specVersion: "0.3.0" });
 				assert.equal(report.results.tests.length, 27);
 				for (const source of files) {
 					const tests = report.results.tests.filter(
